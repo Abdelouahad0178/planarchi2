@@ -1,5 +1,6 @@
 import * as THREE from 'https://esm.sh/three@0.158.0';
 import { OrbitControls } from 'https://esm.sh/three@0.158.0/examples/jsm/controls/OrbitControls.js';
+import * as TWEEN from 'https://esm.sh/@tweenjs/tween.js@18.6.4';
 
 // Configuration de l'immeuble
 const buildingConfig = {
@@ -38,6 +39,28 @@ const materials = {
     })
 };
 
+// Points de vue intérieurs pour chaque étage
+const viewpoints = [];
+for (let floor = 0; floor < buildingConfig.totalFloors; floor++) {
+    const floorY = calculateFloorPosition(floor);
+    if (floor === 0) {
+        viewpoints[floor] = [
+            { name: "Entrée 1 intérieur", position: [23.8, floorY + 1.7, -2.8], target: [20, floorY + 1.7, -2.8] },
+            { name: "Entrée 2 intérieur", position: [0, floorY + 1.7, 4.0], target: [0, floorY + 1.7, 0] },
+            { name: "Garage 1", position: [-22, floorY + 1.7, 0], target: [-22, floorY + 1.7, 3] },
+            { name: "Garage 8", position: [22, floorY + 1.7, 0], target: [22, floorY + 1.7, 3] },
+            { name: "Centre RDC", position: [0, floorY + 1.7, 0], target: [0, floorY + 1.7, 4] }
+        ];
+    } else {
+        viewpoints[floor] = [
+            { name: "Début couloir", position: [0, floorY + 1.7, -3], target: [0, floorY + 1.7, -2] },
+            { name: "Bureau 1", position: [-22, floorY + 1.7, 2], target: [-20, floorY + 1.7, 2] },
+            { name: "Bureau 8", position: [22, floorY + 1.7, 2], target: [20, floorY + 1.7, 2] },
+            { name: "Centre étage", position: [0, floorY + 1.7, 0], target: [0, floorY + 1.7, 4] }
+        ];
+    }
+}
+
 // Initialisation
 function init() {
     if (!Detector.webgl) {
@@ -73,14 +96,8 @@ function init() {
     window.addEventListener('resize', onWindowResize);
     setupEventListeners();
 
-    // Vérifier TWEEN.js après un délai pour s'assurer qu'il est chargé
-    setTimeout(() => {
-        if (typeof TWEEN === 'undefined') {
-            console.warn('TWEEN.js n\'a pas pu être chargé. Les animations des étages seront désactivées.');
-        }
-        animate();
-        document.getElementById('loading-overlay').style.display = 'none';
-    }, 1000);
+    animate();
+    document.getElementById('loading-overlay').style.display = 'none';
 }
 
 // Éclairage
@@ -236,7 +253,7 @@ function createEntrances(floorGroup) {
     // Entrée N°1 (façade droite)
     const entrance1Geometry = new THREE.BoxGeometry(1, buildingConfig.rdcHeight * 0.9, 3);
     const entrance1 = new THREE.Mesh(entrance1Geometry, materials.entrances);
-    entrance1.position.set(buildingConfig.width / 2 + 0.5, (buildingConfig.rdcHeight * 0.9) / 2, 0);
+    entrance1.position.set(buildingConfig.width / 2 + 0.2, (buildingConfig.rdcHeight * 0.9) / 2, -2.8);
     entrance1.castShadow = true;
     entrance1.receiveShadow = true;
     floorGroup.add(entrance1);
@@ -308,6 +325,7 @@ function set2DView() {
     controls.enabled = false;
     isViewMode2D = true;
     building.rotation.y = 0;
+    document.getElementById('viewpoint-selector').style.display = 'none';
 }
 
 // Vue 3D
@@ -316,6 +334,7 @@ function set3DView() {
     camera.lookAt(0, 10, 0);
     controls.enabled = true;
     isViewMode2D = false;
+    document.getElementById('viewpoint-selector').style.display = 'none';
 }
 
 // Redimensionnement
@@ -332,16 +351,19 @@ function setupEventListeners() {
         set2DView();
         document.getElementById('view2DBtn').classList.add('active');
         document.getElementById('view3DBtn').classList.remove('active');
+        document.getElementById('viewpoint-selector').style.display = 'none';
     });
 
     document.getElementById('view3DBtn').addEventListener('click', () => {
         set3DView();
         document.getElementById('view3DBtn').classList.add('active');
         document.getElementById('view2DBtn').classList.remove('active');
+        document.getElementById('viewpoint-selector').style.display = 'none';
     });
 
     document.getElementById('resetViewBtn').addEventListener('click', () => {
         isViewMode2D ? set2DView() : set3DView();
+        document.getElementById('viewpoint-selector').style.display = 'none';
     });
 
     document.getElementById('zoomInBtn').addEventListener('click', () => {
@@ -365,18 +387,60 @@ function setupEventListeners() {
 
             floors.forEach((floor, index) => {
                 floor.visible = selectedFloor === 'all' || index === parseInt(selectedFloor);
-                if (typeof TWEEN !== 'undefined') {
-                    floor.scale.set(1, selectedFloor === 'all' ? 1 : 0.01, 1);
-                    new TWEEN.Tween(floor.scale)
-                        .to({ x: 1, y: 1, z: 1 }, 500)
-                        .easing(TWEEN.Easing.Quadratic.InOut)
-                        .start();
-                } else {
-                    floor.scale.set(1, 1, 1); // Pas d'animation si TWEEN n'est pas chargé
-                }
+                floor.scale.set(1, selectedFloor === 'all' ? 1 : 0.01, 1);
+                new TWEEN.Tween(floor.scale)
+                    .to({ x: 1, y: 1, z: 1 }, 500)
+                    .easing(TWEEN.Easing.Quadratic.InOut)
+                    .start();
             });
+
+            if (selectedFloor === 'all') {
+                document.getElementById('viewpoint-selector').style.display = 'none';
+            } else {
+                showViewpointsForFloor(parseInt(selectedFloor));
+            }
         });
     });
+}
+
+// Afficher les points de vue pour un étage sélectionné
+function showViewpointsForFloor(floorNumber) {
+    const viewpointButtonsDiv = document.getElementById('viewpoint-buttons');
+    viewpointButtonsDiv.innerHTML = '';
+
+    const floorViewpoints = viewpoints[floorNumber];
+    if (floorViewpoints) {
+        floorViewpoints.forEach((vp) => {
+            const btn = document.createElement('button');
+            btn.textContent = vp.name;
+            btn.style.margin = '5px';
+            btn.style.padding = '5px';
+            btn.style.cursor = 'pointer';
+            btn.addEventListener('click', () => moveCameraTo(vp.position, vp.target));
+            viewpointButtonsDiv.appendChild(btn);
+        });
+        document.getElementById('viewpoint-selector').style.display = 'block';
+    } else {
+        document.getElementById('viewpoint-selector').style.display = 'none';
+    }
+}
+
+// Déplacer la caméra vers un point de vue spécifique
+function moveCameraTo(newPosition, newTarget) {
+    controls.enabled = false;
+    const duration = 1000;
+    new TWEEN.Tween(camera.position)
+        .to(new THREE.Vector3(...newPosition), duration)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+    new TWEEN.Tween(controls.target)
+        .to(new THREE.Vector3(...newTarget), duration)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .onComplete(() => {
+            controls.update();
+            controls.enabled = true;
+        })
+        .start();
 }
 
 // Wireframe
@@ -397,9 +461,7 @@ function toggleWireframe() {
 // Animation
 function animate() {
     requestAnimationFrame(animate);
-    if (typeof TWEEN !== 'undefined') {
-        TWEEN.update();
-    }
+    TWEEN.update();
     controls.update();
     renderer.render(scene, camera);
 }

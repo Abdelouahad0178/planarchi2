@@ -81,14 +81,14 @@
         }
         
         .floor-selector {
-    position: absolute;
-    top: 73%;
-    right: 13%;
-    background: white;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+            position: absolute;
+            top: 73%;
+            right: 13%;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 100;
         }
         
         .floor-selector h3 {
@@ -176,6 +176,29 @@
             margin-top: 20px;
         }
         
+        #viewpoint-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 100;
+            display: none;
+        }
+        
+        #viewpoint-selector h3 {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        #viewpoint-buttons button {
+            margin: 5px;
+            padding: 5px;
+            cursor: pointer;
+        }
+        
         @media (max-width: 850px) {
             .building-container {
                 width: 95%;
@@ -222,6 +245,11 @@
                 <li><strong>Entrées :</strong> 2 (façade courte et façade longue)</li>
             </ul>
         </div>
+        
+        <div id="viewpoint-selector">
+            <h3>Points de Vue</h3>
+            <div id="viewpoint-buttons"></div>
+        </div>
     </div>
     
     <div class="view-controls">
@@ -262,8 +290,6 @@
         WebGL n'est pas supporté par votre navigateur ou une ressource n'a pas pu être chargée. Veuillez utiliser un navigateur moderne comme Chrome ou Firefox.
     </div>
     
-    <!-- Charger TWEEN.js via un CDN alternatif (unpkg) -->
-    <script src="https://unpkg.com/tween.js@18.6.4/dist/tween.min.js"></script>
     <!-- Charger le script principal comme module ES -->
     <script type="module" src="app.js"></script>
 </body>
