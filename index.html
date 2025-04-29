@@ -3,359 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modèle d'étage d'immeuble 2D/3D</title>
+    <title>Visualisation d'Immeuble avec Three.js</title>
     <style>
-        body {
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
             font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f0f0f0;
+            padding: 20px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-            overflow: auto;
+            overflow-x: hidden;
         }
-
-        .building {
-            width: 960px; /* 48m à l'échelle */
-            height: 200px; /* 10m à l'échelle */
-            background-color: #fff;
-            border: 2px solid #333;
-            position: relative;
-            cursor: grab;
-            transform-origin: center;
+        
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+            text-align: center;
         }
-
-        .corridor {
+        
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
             width: 100%;
-            height: 30px; /* 1.5m = 30px */
-            background-color: #ddd;
-            position: absolute;
-            top: 85px; /* Centré verticalement : (200 - 30) / 2 + 15 */
         }
-
-        .office {
-            width: 160px; /* 45m² ajusté */
-            height: 67%; /* ~134px */
-            background-color: #f5f5f5;
-            border: 1px solid #999;
-            position: absolute;
-        }
-
-        .elevator {
-            width: 32px; /* 1.6m = 32px */
-            height: 24px; /* Ajusté pour couloir de 30px */
-            background-color: #c0c0c0;
-            position: absolute;
-            border: 1px solid #333;
-        }
-
-        .stairs {
-            width: 52px; /* 2.6m = 52px */
-            height: 24px; /* Ajusté pour couloir de 30px */
-            background-color: #d3d3d3;
-            position: absolute;
-            border: 1px solid #333;
-        }
-
-        .stair-line {
-            height: 2px;
-            background-color: #999;
-            position: absolute;
-            left: 5px;
-            right: 5px;
-        }
-
-        .door {
-            width: 40px;
-            height: 5px;
-            background-color: #8b4513;
-            position: absolute;
-        }
-
-        .toilet {
-            width: 30px;
-            height: 30px;
-            background-color: #add8e6;
-            border: 1px solid #333;
-            position: absolute;
-            border-radius: 50%;
-        }
-
-        .window {
-            width: 40px;
-            height: 5px;
-            background-color: #87ceeb;
-            position: absolute;
-        }
-
-        .label {
-            position: absolute;
-            font-size: 10px;
+        
+        button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
             font-weight: bold;
+            transition: background-color 0.3s;
         }
-
-        .dimension-label {
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button.active {
+            background-color: #16a085;
+        }
+        
+        .building-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border-radius: 8px;
+        }
+        
+        #scene-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .view-controls {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .floor-selector {
             position: absolute;
-            font-size: 10px;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        
+        .floor-selector h3 {
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .floor-selector button {
+            margin: 5px;
+            width: 40px;
+            height: 40px;
+            font-size: 14px;
+        }
+        
+        .info-panel {
+            position: absolute;
+            left: 2%;
+            top: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+            z-index: -1;
+        }
+        
+        .info-panel h3 {
+            margin-bottom: 10px;
             color: #333;
         }
-
-        .controls {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            display: flex;
-            gap: 10px;
-            z-index: 100;
+        
+        .info-panel ul {
+            padding-left: 20px;
         }
-
-        button {
-            padding: 5px 10px;
-            cursor: pointer;
-            background-color: #fff;
-            border: 1px solid #333;
-            border-radius: 3px;
+        
+        .info-panel li {
+            margin-bottom: 5px;
         }
-
-        button:hover {
-            background-color: #e0e0e0;
-        }
-
+        
         .legend {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border: 1px solid #333;
-            border-radius: 5px;
-            z-index: 100;
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
         }
-
+        
         .legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 5px;
+            margin-right: 15px;
         }
-
+        
         .legend-color {
             width: 20px;
             height: 20px;
-            margin-right: 10px;
+            margin-right: 8px;
+            border: 1px solid #999;
+        }
+        
+        #loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        #loading-text {
+            font-size: 24px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        #error-message {
+            display: none;
+            color: red;
+            font-size: 18px;
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 850px) {
+            .building-container {
+                width: 95%;
+                height: 500px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="building" id="building">
-        <div class="corridor" id="corridor"></div>
-
-        <!-- Dimensions labels -->
-        <div class="dimension-label" style="top: -20px; left: 450px;">48 mètres</div>
-        <div class="dimension-label" style="top: 90px; left: -30px; transform: rotate(-90deg);">10 mètres</div>
-
-        <div class="controls">
-            <button id="zoomIn">Zoom +</button>
-            <button id="zoomOut">Zoom -</button>
-            <button id="reset">Réinitialiser</button>
+    <h1>Visualisation de l'Immeuble Commercial</h1>
+    
+    <div class="controls">
+        <button id="view2DBtn" class="active" aria-label="Passer à la vue 2D">Vue 2D</button>
+        <button id="view3DBtn" aria-label="Passer à la vue 3D">Vue 3D</button>
+    </div>
+    
+    <div class="building-container">
+        <div id="scene-container"></div>
+        
+        <div id="loading-overlay">
+            <div id="loading-text">Chargement...</div>
         </div>
-
-        <div class="legend">
-            <h3>Légende</h3>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #ddd;"></div>
-                <span>Couloir</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #f5f5f5;"></div>
-                <span>Bureau (45m²)</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #add8e6;"></div>
-                <span>WC</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #8b4513;"></div>
-                <span>Porte</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #87ceeb;"></div>
-                <span>Fenêtre</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #c0c0c0;"></div>
-                <span>Ascenseur</span>
-            </div>
-            <div class="legend-item">
-                <div class="legend-color" style="background-color: #d3d3d3;"></div>
-                <span>Escalier</span>
-            </div>
+        
+        <div class="floor-selector">
+            <h3>Étages</h3>
+            <button data-floor="7" aria-label="Étage 7">7</button>
+            <button data-floor="6" aria-label="Étage 6">6</button>
+            <button data-floor="5" aria-label="Étage 5">5</button>
+            <button data-floor="4" aria-label="Étage 4">4</button>
+            <button data-floor="3" aria-label="Étage 3">3</button>
+            <button data-floor="2" aria-label="Étage 2">2</button>
+            <button data-floor="1" aria-label="Étage 1">1</button>
+            <button data-floor="0" class="active" aria-label="Rez-de-chaussée">RDC</button>
+            <button data-floor="all" aria-label="Tous les étages">Tous</button>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Caractéristiques de l'immeuble</h3>
+            <ul>
+                <li><strong>Dimensions :</strong> 48m x 9m</li>
+                <li><strong>Étages :</strong> RDC + 7 étages</li>
+                <li><strong>RDC :</strong> 8 garages commerciaux</li>
+                <li><strong>Étages supérieurs :</strong> 8 bureaux par étage</li>
+                <li><strong>Entrées :</strong> 2 (façade courte et façade longue)</li>
+            </ul>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const building = document.getElementById('building');
-            const corridor = document.getElementById('corridor');
-
-            // Create stairs (2.6m) and elevators (1.6m) inside the corridor
-            const createElevator = (left, labelText) => {
-                const elevator = document.createElement('div');
-                elevator.className = 'elevator';
-                elevator.style.left = left;
-                elevator.style.top = '208%'; // Centré verticalement : (30 - 24) / 2
-
-                const label = document.createElement('div');
-                label.className = 'label';
-                label.textContent = labelText;
-                label.style.top = '7px';
-                label.style.left = '5px';
-                elevator.appendChild(label);
-
-                return elevator;
-            };
-
-            const createStairs = (left, labelText) => {
-                const stairs = document.createElement('div');
-                stairs.className = 'stairs';
-                stairs.style.left = left;
-                stairs.style.top = '208%'; // Centré verticalement : (30 - 24) / 2
-
-                const label = document.createElement('div');
-                label.className = 'label';
-                label.textContent = labelText;
-                label.style.top = '1px';
-                label.style.left = '10px';
-                stairs.appendChild(label);
-
-                for (let i = 1; i <= 3; i++) {
-                    const stairLine = document.createElement('div');
-                    stairLine.className = 'stair-line';
-                    stairLine.style.top = `${6 + i * 6}px`; // Ajusté pour hauteur 24px
-                    stairs.appendChild(stairLine);
-                }
-
-                return stairs;
-            };
-
-            // Order: Stairs (52px), Elevator (32px), Stairs (52px), Elevator (32px)
-            // Centered at left: 396px
-            corridor.appendChild(createStairs('396px', 'Esc 1'));
-            corridor.appendChild(createElevator('448px', 'Asc 1')); // 396 + 52
-            corridor.appendChild(createStairs('480px', 'Esc 2')); // 396 + 52 + 32
-            corridor.appendChild(createElevator('532px', 'Asc 2')); // 396 + 52 + 32 + 52
-
-            // Create 6 office spaces (3 on each side of corridor)
-            const createOffice = (index, left, top, number) => {
-                const office = document.createElement('div');
-                office.className = 'office';
-                office.style.left = `${left}px`;
-                office.style.top = `${top}px`;
-
-                const label = document.createElement('div');
-                label.className = 'label';
-                label.textContent = `Bureau ${number} (45m²)`;
-                label.style.top = '5px';
-                label.style.left = '5px';
-                office.appendChild(label);
-
-                const door = document.createElement('div');
-                door.className = 'door';
-                door.style.left = '60px';
-                door.style.bottom = '0';
-                office.appendChild(door);
-
-                const toilet = document.createElement('div');
-                toilet.className = 'toilet';
-                toilet.style.left = '15px';
-                toilet.style.bottom = '5px';
-                office.appendChild(toilet);
-
-                const windows = [
-                    { top: 0, left: 40 },
-                    { top: 0, left: 100 }
-                ];
-
-                windows.forEach(winPos => {
-                    const window = document.createElement('div');
-                    window.className = 'window';
-                    window.style.top = `${winPos.top}px`;
-                    window.style.left = `${winPos.left}px`;
-                    office.appendChild(window);
-                });
-
-                building.appendChild(office);
-            };
-
-            // Left side offices
-            for (let i = 0; i < 3; i++) {
-                createOffice(i, 20 + i * 165, 0, i + 1);
-            }
-
-            // Right side offices
-            for (let i = 0; i < 3; i++) {
-                createOffice(i, 545 + i * 165, 0, i + 4);
-            }
-
-            // Zoom and drag functionality
-            let scale = 1;
-            let isDragging = false;
-            let startX, startY, initialLeft, initialTop;
-
-            const zoomIn = document.getElementById('zoomIn');
-            const zoomOut = document.getElementById('zoomOut');
-            const reset = document.getElementById('reset');
-
-            zoomIn.addEventListener('click', () => {
-                scale = Math.min(scale + 0.1, 2);
-                building.style.transform = `scale(${scale})`;
-            });
-
-            zoomOut.addEventListener('click', () => {
-                scale = Math.max(scale - 0.1, 0.5);
-                building.style.transform = `scale(${scale})`;
-            });
-
-            reset.addEventListener('click', () => {
-                scale = 1;
-                building.style.transform = 'scale(1)';
-                building.style.left = '0';
-                building.style.top = '0';
-            });
-
-            building.addEventListener('mousedown', (e) => {
-                if (e.target === building || e.target.className === 'corridor') {
-                    isDragging = true;
-                    startX = e.clientX;
-                    startY = e.clientY;
-
-                    const rect = building.getBoundingClientRect();
-                    initialLeft = rect.left;
-                    initialTop = rect.top;
-
-                    building.style.cursor = 'grabbing';
-                }
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    const dx = (e.clientX - startX) / scale;
-                    const dy = (e.clientY - startY) / scale;
-
-                    building.style.position = 'relative';
-                    building.style.left = `${dx}px`;
-                    building.style.top = `${dy}px`;
-                }
-            });
-
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                building.style.cursor = 'grab';
-            });
-
-            // Prevent default drag behavior
-            building.addEventListener('dragstart', (e) => e.preventDefault());
-        });
-    </script>
+    
+    <div class="view-controls">
+        <button id="resetViewBtn" aria-label="Réinitialiser la vue">Réinitialiser Vue</button>
+        <button id="zoomInBtn" aria-label="Zoom avant">Zoom +</button>
+        <button id="zoomOutBtn" aria-label="Zoom arrière">Zoom -</button>
+        <button id="toggleWireframeBtn" aria-label="Basculer l'affichage wireframe">Afficher/Masquer Wireframe</button>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #cccccc;"></div>
+            <span>Structure Principale</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #2196F3;"></div>
+            <span>Façades Vitrées</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #FFC107;"></div>
+            <span>Garages (RDC)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #4CAF50;"></div>
+            <span>Bureaux (Étages)</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #F44336;"></div>
+            <span>Entrées</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #9C27B0;"></div>
+            <span>Escaliers/Ascenseur</span>
+        </div>
+    </div>
+    
+    <div id="error-message">
+        WebGL n'est pas supporté par votre navigateur ou une ressource n'a pas pu être chargée. Veuillez utiliser un navigateur moderne comme Chrome ou Firefox.
+    </div>
+    
+    <!-- Charger TWEEN.js via un CDN alternatif (unpkg) -->
+    <script src="https://unpkg.com/tween.js@18.6.4/dist/tween.min.js"></script>
+    <!-- Charger le script principal comme module ES -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
