@@ -164,18 +164,21 @@ function calculateFloorPosition(floorNumber) {
 
 // Structure de l'étage
 function createFloorStructure(floorGroup, floorHeight) {
+    // Plancher
     const floorGeometry = new THREE.BoxGeometry(buildingConfig.width, 0.2, buildingConfig.depth);
     const floor = new THREE.Mesh(floorGeometry, materials.structure);
     floor.position.y = -0.1;
     floor.receiveShadow = true;
     floorGroup.add(floor);
 
+    // Plafond
     const ceilingGeometry = new THREE.BoxGeometry(buildingConfig.width, 0.2, buildingConfig.depth);
     const ceiling = new THREE.Mesh(ceilingGeometry, materials.structure);
     ceiling.position.y = floorHeight - 0.1;
     ceiling.receiveShadow = true;
     floorGroup.add(ceiling);
 
+    // Mur arrière
     const backWallGeometry = new THREE.BoxGeometry(buildingConfig.width, floorHeight, 0.2);
     const backWall = new THREE.Mesh(backWallGeometry, materials.structure);
     backWall.position.z = -buildingConfig.depth / 2;
@@ -184,6 +187,7 @@ function createFloorStructure(floorGroup, floorHeight) {
     backWall.receiveShadow = true;
     floorGroup.add(backWall);
 
+    // Mur gauche (solide)
     const sideWallGeometry = new THREE.BoxGeometry(0.2, floorHeight, buildingConfig.depth);
     const leftWall = new THREE.Mesh(sideWallGeometry, materials.structure);
     leftWall.position.x = -buildingConfig.width / 2;
@@ -192,13 +196,16 @@ function createFloorStructure(floorGroup, floorHeight) {
     leftWall.receiveShadow = true;
     floorGroup.add(leftWall);
 
-    const rightWall = new THREE.Mesh(sideWallGeometry, materials.structure);
-    rightWall.position.x = buildingConfig.width / 2;
-    rightWall.position.y = floorHeight / 2;
-    rightWall.castShadow = true;
-    rightWall.receiveShadow = true;
-    floorGroup.add(rightWall);
+    // Façade droite (vitrée)
+    const rightFacadeGeometry = new THREE.PlaneGeometry(buildingConfig.depth, floorHeight);
+    const rightFacade = new THREE.Mesh(rightFacadeGeometry, materials.glass);
+    rightFacade.position.set(buildingConfig.width / 2, floorHeight / 2, 0);
+    rightFacade.rotation.y = Math.PI / 2; // Face outward (+x)
+    rightFacade.castShadow = false;
+    rightFacade.receiveShadow = true;
+    floorGroup.add(rightFacade);
 
+    // Façade principale
     const frontFacadeGeometry = new THREE.PlaneGeometry(buildingConfig.width, floorHeight);
     const frontFacade = new THREE.Mesh(frontFacadeGeometry, materials.glass);
     frontFacade.position.z = buildingConfig.depth / 2;
@@ -226,13 +233,15 @@ function createGarages(floorGroup) {
 
 // Entrées
 function createEntrances(floorGroup) {
-    const entrance1Geometry = new THREE.BoxGeometry(3, buildingConfig.rdcHeight * 0.9, 1);
+    // Entrée N°1 (façade droite)
+    const entrance1Geometry = new THREE.BoxGeometry(1, buildingConfig.rdcHeight * 0.9, 3);
     const entrance1 = new THREE.Mesh(entrance1Geometry, materials.entrances);
-    entrance1.position.set(-(buildingConfig.width / 2) + 3, (buildingConfig.rdcHeight * 0.9) / 2, buildingConfig.depth / 2);
+    entrance1.position.set(buildingConfig.width / 2 + 0.5, (buildingConfig.rdcHeight * 0.9) / 2, 0);
     entrance1.castShadow = true;
     entrance1.receiveShadow = true;
     floorGroup.add(entrance1);
 
+    // Entrée N°2 (façade principale)
     const entrance2Geometry = new THREE.BoxGeometry(1, buildingConfig.rdcHeight * 0.9, 3);
     const entrance2 = new THREE.Mesh(entrance2Geometry, materials.entrances);
     entrance2.position.set(0, (buildingConfig.rdcHeight * 0.9) / 2, buildingConfig.depth / 2);
